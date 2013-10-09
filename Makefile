@@ -17,7 +17,7 @@ main.hex: main.elf
 %.o: %.c %.h
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-install: $(PROJECT)
+install: main.elf
 	avrdude -B 1 -v -c $(TOOL) -P $(PORT) -p $(DUDEPART) -U flash:w:main.hex
 
 binary: $(PROJECT).bin
@@ -34,4 +34,4 @@ size: main.elf
 	avr-size main.elf
 
 clean:
-	rm -f *.bin *.hex *.o *.elf *.map
+	rm -f $(OBJECTS) main.hex main.elf main.map
