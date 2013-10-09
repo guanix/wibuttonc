@@ -17,7 +17,7 @@ main.hex: main.elf
 %.o: %.c %.h
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-install: main.elf
+install: main.hex
 	avrdude -B 1 -v -c $(TOOL) -P $(PORT) -p $(DUDEPART) -U flash:w:main.hex
 
 binary: $(PROJECT).bin
