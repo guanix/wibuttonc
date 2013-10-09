@@ -40,8 +40,8 @@ void nrf24_config(uint8_t channel, uint8_t pay_length)
     nrf24_configRegister(RX_PW_P4, 0x00); // Pipe not used 
     nrf24_configRegister(RX_PW_P5, 0x00); // Pipe not used 
 
-    // 250 kbps, TX gain: -12dbm
-    nrf24_configRegister(RF_SETUP, 0b100010);
+    // 250 kbps, TX gain: 0dbm
+    nrf24_configRegister(RF_SETUP, 0b100110);
 
     // CRC enable, 1 byte CRC length
     nrf24_configRegister(CONFIG,nrf24_CONFIG);
