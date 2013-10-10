@@ -64,15 +64,16 @@ uint8_t transmit(uint8_t data)
 {
 	nrf24_send(&data);
 	while (nrf24_isSending());
-	uint8_t status = nrf24_lastMessageStatus();
+	uint8_t status = nrf24_getStatus();
 	nrf24_powerUpRx();
-	_delay_ms(10);
+	_delay_ms(50);
 	return status;
 }
 	
 int main()
 {
 //    CLK.CTRL = 1;
+	uint8_t magic, channel, group, end;
 	PORTA.OUTSET = _BV(5);
 	PORTB.OUTSET = _BV(2);
     PORTA.DIRSET = _BV(5);
@@ -83,8 +84,9 @@ int main()
 	
 	// Read two addresses from EEPROM
 	eeprom_busy_wait();
-	uint8_t status = eeprom_read_byte((const uint8_t *)0);
-	if (status != 42) {
+	magic = eeprom_read_byte((const uint8_t *)0);
+
+	if (magic != 42) {
 		blinkleft(4);
 		blinkright(4);
 
@@ -92,28 +94,29 @@ int main()
 	}
 
 	eeprom_busy_wait();
-	uint8_t channel = eeprom_read_byte((const uint8_t *)1);
+	channel = eeprom_read_byte((const uint8_t *)1);
 
 	eeprom_busy_wait();
-	uint8_t group = eeprom_read_byte((const uint8_t *)2);
+	group = eeprom_read_byte((const uint8_t *)2);
 
 	eeprom_busy_wait();
-	uint8_t end = eeprom_read_byte((const uint8_t *)3);
+	end = eeprom_read_byte((const uint8_t *)3);
+	
+	uint8_t tx_address[5] = { group<<2, 0x9b, 0x20, 0x83, 0x92 };
+	uint8_t rx_address[5] = { group<<2, 0x9b, 0x20, 0x83, 0x92 };
 
-	uint8_t my_address[5] = { 0, 0, 0x20, 0x83, 0x92 };
-
-	my_address[0] = group;
-	my_address[1] = end;
-
-	uint8_t other_address[5] = { 0, 0, 0x20, 0x83, 0x92 };
-
-	other_address[0] = group;
-	other_address[1] = 3 - end;
-
-	nrf24_tx_address(my_address);
-	nrf24_rx_address(other_address);
+	if (end == 1) {
+		tx_address[0] |= 2;
+		rx_address[0] |= 1;
+	} else {
+		tx_address[0] |= 1;
+		rx_address[0] |= 2;
+	}
 
 	nrf24_init();
+
+	nrf24_tx_address(tx_address);
+	nrf24_rx_address(rx_address);
 			
 	nrf24_config(channel, 1);
 
@@ -128,16 +131,19 @@ int main()
 	int32_t last_left_btn = 0;
 	int32_t last_right_btn = 0;
 
+	blinkleft(channel);
 	blinkright(group);
 	blinkleft(end);
-	blinkright(3 - end);
 
-	uint8_t nrf_status = nrf24_getStatus();
-
-	if (nrf_status == 0) {
-		blinkleft(1);
-	} else {
-		blinkleft(2);
+	volatile uint8_t nrf_status = nrf24_getStatus();
+	
+	if (nrf_status != 14) {
+		blinkleft(3);
+		blinkright(3);
+		blinkleft(3);
+		blinkright(3);
+		
+		for (;;) ;
 	}
 		
 	for (;;) {
@@ -218,22 +224,22 @@ int main()
 		}
 
 		// if no message for 8 cycles, turn LED off
-		if (left_led && counter - last_left_led >= 8) {
+		if (left_led && counter - last_left_led >= 16) {
 			left_led = 0;
 			left(0);
 		}
 
-		if (right_led && counter - last_right_led >= 8) {
+		if (right_led && counter - last_right_led >= 16) {
 			right_led = 0;
 			right(0);
 		}
 
 		// Every 4 cycles, retransmit message
-		if (left_btn && counter - last_left_btn >= 4) {
+		if (left_btn && counter - last_left_btn >= 8) {
 			transmit('L');
 		}
 
-		if (right_btn && counter - last_right_btn >= 4) {
+		if (right_btn && counter - last_right_btn >= 8) {
 			transmit('R');
 		}
 	
