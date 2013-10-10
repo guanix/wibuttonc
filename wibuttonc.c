@@ -22,8 +22,6 @@
 
 // address prefix is 161 36 127
 
-uint8_t address[5] = { 0, 0x9b, 0x20, 0x83, 0x92 };
-
 void left(uint8_t state)
 {
 	if (state) {
@@ -102,23 +100,18 @@ int main()
 	eeprom_busy_wait();
 	uint8_t end = eeprom_read_byte((const uint8_t *)3);
 
-	address[0] = group<<4;
+	uint8_t my_address[5] = { 0, 0, 0x20, 0x83, 0x92 };
 
-	if (end == 1) {
-		address[0] |= 1;
-	} else {
-		address[0] |= 2;
-	}
+	my_address[0] = group;
+	my_address[1] = end;
 
-	nrf24_tx_address(address);
+	uint8_t other_address[5] = { 0, 0, 0x20, 0x83, 0x92 };
 
-	if (end == 1) {
-		address[0] |= 2;
-	} else {
-		address[0] |= 1;
-	}
+	other_address[0] = group;
+	other_address[1] = 3 - end;
 
-	nrf24_rx_address(address);
+	nrf24_tx_address(my_address);
+	nrf24_rx_address(other_address);
 
 	nrf24_init();
 			
@@ -135,11 +128,17 @@ int main()
 	int32_t last_left_btn = 0;
 	int32_t last_right_btn = 0;
 
-	blinkleft(channel);
 	blinkright(group);
 	blinkleft(end);
+	blinkright(3 - end);
 
-	volatile uint8_t status = nrf24_getStatus();
+	uint8_t nrf_status = nrf24_getStatus();
+
+	if (nrf_status == 0) {
+		blinkleft(1);
+	} else {
+		blinkleft(2);
+	}
 		
 	for (;;) {
 		// debouncing!
